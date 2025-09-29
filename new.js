@@ -1,0 +1,14 @@
+trex-runner-game/
+ index.html
+ sketch.js
+ p5.js
+ p5.play.js
+ images/
+ trex1.png
+ trex3.png
+ trex4.png
+ trex_collided.png
+ ground2.png
+ cloud.png
+ obstacle1.png
+ etc
