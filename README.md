@@ -1,2 +1,2 @@
 # trex
-My first game
+My First Game

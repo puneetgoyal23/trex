@@ -6,36 +6,59 @@ var trex, trex_running, trex_collided;
 var ground, invisibleGround, groundImage;
 
 var cloudsGroup, cloudImage;
+var starsGroup;
 var obstaclesGroup, obstacle1, obstacle2, obstacle3, obstacle4, obstacle5, obstacle6;
 
+
 var score=0;
+var lastCheckpoint = 0;
+var lives = 3;
+var invincible = 0;
+
 
 var gameOver, restart;
 
-localStorage["HighestScore"] = 0;
+var jumpSound, dieSound, checkpointSound;
+
+//localStorage["HighestScore"] = 0;
+
 
 function preload(){
-  trex_running =   loadAnimation("trex1.png","trex3.png","trex4.png");
+  trex_running = loadAnimation("trex1.png","trex3.png","trex4.png");
   trex_collided = loadAnimation("trex_collided.png");
-  
   groundImage = loadImage("ground2.png");
-  
   cloudImage = loadImage("cloud.png");
-  
   obstacle1 = loadImage("obstacle1.png");
   obstacle2 = loadImage("obstacle2.png");
   obstacle3 = loadImage("obstacle3.png");
   obstacle4 = loadImage("obstacle4.png");
   obstacle5 = loadImage("obstacle5.png");
   obstacle6 = loadImage("obstacle6.png");
-  
   gameOverImg = loadImage("gameOver.png");
   restartImg = loadImage("restart.png");
+
+  // 🔊 load jump sound
+  jumpSound = loadSound("jump.mp3");
+  jumpSound.setVolume(0.5);   // 50% of full volume
+  dieSound = loadSound("die.mp3");
+  dieSound.setVolume(0.2);    // 20% of full volume
+  checkpointSound = loadSound("checkpoint.mp3");
+  checkpointSound.setVolume(0.2); // 20% of full volume
+  lifeLostSound = loadSound("lifeLost.mp3");
+  lifeLostSound.setVolume(0.3); // 30% of full volume
+  lifeGainedSound = loadSound("lifeGained.mp3");
+  lifeGainedSound.setVolume(0.6); // 60% of full volume
 }
 
 function setup() {
   createCanvas(600, 200);
+  lastCheckpoint = 0;
   
+  if (localStorage["HighestScore"] === undefined) {
+  localStorage["HighestScore"] = 0;
+  }
+  starsGroup = new Group();
+
   trex = createSprite(50,180,20,50);
   
   trex.addAnimation("running", trex_running);
@@ -69,35 +92,91 @@ function setup() {
 }
 
 function draw() {
+  background('#060218ff');
+  fill('rgba(2, 9, 23, 0.91)');
+  noStroke();
+  rect(0, 10, width, 90);  
   //trex.debug = true;
-  background("red");
-  text("Score: "+ score, 500,50);
+  spawnStars();
+
+
+
+  textSize(15);   
+  fill('#f9fbfbff');   
+  stroke('#080000ff');    
+  strokeWeight(0);
+  textFont('sans-serif');
+  textAlign(RIGHT);
+  text("00" + Math.floor(score), 560, 50);
   
-  if (gameState===PLAY){
-    score = score + Math.round(getFrameRate()/60);
-    ground.velocityX = -(6 + 3*score/100);
+  text("HI  00" + Math.floor(localStorage["HighestScore"]), 500, 50);
+
+  text("LIVES: " + lives, 390, 50);
   
-    if(keyDown("space") && trex.y >= 159) {
-      trex.velocityY = -12;
-    }
-  
-    trex.velocityY = trex.velocityY + 0.8
-  
-    if (ground.x < 0){
-      ground.x = ground.width/2;
-    }
-  
-    trex.collide(invisibleGround);
-    spawnClouds();
-    spawnObstacles();
-  
-    if(obstaclesGroup.isTouching(trex)){
-        gameState = END;
+  if (gameState === PLAY) {
+  var baseScoreIncrement = 0.5;
+  var maxIncrement = 3;
+  var increment = baseScoreIncrement + (score / 2000);
+  increment = Math.min(increment, maxIncrement);
+  score += increment;
+
+  // Define speed with a cap (e.g., max speed 12)
+  var speed = Math.min(12, 6 + 3 * score / 100);
+  ground.velocityX = -speed;
+
+  // play checkpoint sound at every 500 points
+  if (Math.floor(score / 500) > lastCheckpoint) {
+    checkpointSound.play();
+    lastCheckpoint = Math.floor(score / 500);
+
+    if (lives < 3) {
+      lives++;
+      lifeGainedSound.play();
     }
   }
+  // die sound
+  if (invincible > 0) invincible--;
+  
+  if (obstaclesGroup.isTouching(trex) && invincible === 0) {
+  dieSound.play();
+  obstaclesGroup.destroyEach();
+  lifeLostSound.play();
+  
+  lives--;
+  invincible = 60;
+  
+  if (lives <= 0) {
+    gameState = END;
+  }
+}
+
+  // play jump sound
+  if (keyDown("space") && trex.y >= 159) {
+  trex.velocityY = -11;
+  jumpSound.play();
+  }
+
+  trex.velocityY += 0.8;
+
+  if (ground.x < 0){
+    ground.x = ground.width/2;
+  }
+
+  trex.collide(invisibleGround);
+  spawnClouds();
+  spawnObstacles(speed);
+  
+  // if(obstaclesGroup.isTouching(trex)){
+  //   gameState = END;
+  // }
+  }
+
   else if (gameState === END) {
     gameOver.visible = true;
     restart.visible = true;
+
+    starsGroup.setVelocityXEach(0);
+    starsGroup.setLifetimeEach(-1);
     
     //set velcity of each game object to 0
     ground.velocityX = 0;
@@ -117,18 +196,32 @@ function draw() {
     }
   }
   
-  
+  starsGroup.forEach(function(star) {
+      if (star.onUpdate) star.onUpdate();
+  });
+
+    // Draw moon on top-left
+  noStroke();
+  fill(255, 255, 200); // light yellowish color
+
+  // Big circle (moon)
+  ellipse(40,40,20,20);
+
+  // Smaller circle (cutout to create crescent)
+  fill('#0d0c0cff'); // same as background color to mask
+  ellipse(50, 40, 24, 30);
+
   drawSprites();
 }
 
 function spawnClouds() {
   //write code here to spawn the clouds
-  if (frameCount % 60 === 0) {
+  if (frameCount % 50 === 0) {
     var cloud = createSprite(600,120,40,10);
-    cloud.y = Math.round(random(80,120));
+    cloud.y = Math.round(random(60,80));
     cloud.addImage(cloudImage);
-    cloud.scale = 0.5;
-    cloud.velocityX = -3;
+    cloud.scale = 0.7;
+    cloud.velocityX = -5;
     
      //assign lifetime to the variable
     cloud.lifetime = 200;
@@ -143,12 +236,41 @@ function spawnClouds() {
   
 }
 
-function spawnObstacles() {
+function spawnStars() {
+  if (gameState !== PLAY) return;
+
+  if (random(1) < 0.05) { 
+    var star = createSprite(random(0, width), random(5 , 100), 5,5);
+
+    star.twinkleSpeed = random(0.02, 0.05);
+    star.twinkleAlpha = random(100, 255);
+    star.fadeOutRate = 255 / 120;
+
+    star.draw = function() {
+      noStroke();
+      fill(255, 255, 255, this.twinkleAlpha);
+      ellipse(0, 0, 4, 4); 
+    };
+
+    star.onUpdate = function() {
+      this.twinkleAlpha -= this.fadeOutRate;
+      if (this.twinkleAlpha <= 0) {
+        this.remove(); 
+      }
+    };
+    starsGroup.add(star);
+  }
+}
+
+
+
+
+function spawnObstacles(speed) {
   if(frameCount % 60 === 0) {
     var obstacle = createSprite(600,165,10,40);
     //obstacle.debug = true;
-    obstacle.velocityX = -(6 + 3*score/100);
-    
+    var obstacleSpeed = speed || 6; 
+    obstacle.velocityX = -obstacleSpeed;    
     //generate random obstacles
     var rand = Math.round(random(1,6));
     switch(rand) {
@@ -168,9 +290,8 @@ function spawnObstacles() {
     }
     
     //assign scale and lifetime to the obstacle           
-    obstacle.scale = 0.5;
+    obstacle.scale = 0.4;
     obstacle.lifetime = 300;
-    //add each obstacle to the group
     obstaclesGroup.add(obstacle);
   }
 }
@@ -182,14 +303,18 @@ function reset(){
   
   obstaclesGroup.destroyEach();
   cloudsGroup.destroyEach();
+  starsGroup.destroyEach();
+
   
   trex.changeAnimation("running",trex_running);
   
   if(localStorage["HighestScore"]<score){
-    localStorage["HighestScore"] = score;
+    localStorage["HighestScore"] = Math.floor(score);
   }
-  console.log(localStorage["HighestScore"]);
+  console.log("High Score: " + localStorage["HighestScore"]);
   
   score = 0;
-  
+  lastCheckpoint = 0;
+  lives = 3;
+  invincible = 0;
 }
