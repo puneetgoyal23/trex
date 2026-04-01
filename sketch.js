@@ -37,17 +37,17 @@ function preload(){
   gameOverImg = loadImage("gameOver.png");
   restartImg = loadImage("restart.png");
 
-  // 🔊 load jump sound
+
   jumpSound = loadSound("jump.mp3");
-  jumpSound.setVolume(0.5);   // 50% of full volume
+  jumpSound.setVolume(0.5);  // 50% of full volume
   dieSound = loadSound("die.mp3");
-  dieSound.setVolume(0.2);    // 20% of full volume
+  dieSound.setVolume(0.2);   
   checkpointSound = loadSound("checkpoint.mp3");
-  checkpointSound.setVolume(0.2); // 20% of full volume
+  checkpointSound.setVolume(0.2);
   lifeLostSound = loadSound("lifeLost.mp3");
-  lifeLostSound.setVolume(0.3); // 30% of full volume
+  lifeLostSound.setVolume(0.3);
   lifeGainedSound = loadSound("lifeGained.mp3");
-  lifeGainedSound.setVolume(0.6); // 60% of full volume
+  lifeGainedSound.setVolume(0.6); 
 }
 
 function setup() {
@@ -98,18 +98,15 @@ function draw() {
   rect(0, 10, width, 90);  
   //trex.debug = true;
   spawnStars();
-
-
-
   textSize(15);   
   fill('#f9fbfbff');   
   stroke('#080000ff');    
   strokeWeight(0);
   textFont('sans-serif');
   textAlign(RIGHT);
-  text("00" + Math.floor(score), 560, 50);
+  text(Math.floor(score), 560, 50);
   
-  text("HI  00" + Math.floor(localStorage["HighestScore"]), 500, 50);
+  text("HI"+Math.floor(localStorage["HighestScore"]), 500, 50);
 
   text("LIVES: " + lives, 390, 50);
   
@@ -149,7 +146,6 @@ function draw() {
     gameState = END;
   }
 }
-
   // play jump sound
   if (keyDown("space") && trex.y >= 159) {
   trex.velocityY = -11;
@@ -233,7 +229,6 @@ function spawnClouds() {
     //add each cloud to the group
     cloudsGroup.add(cloud);
   }
-  
 }
 
 function spawnStars() {
@@ -261,9 +256,6 @@ function spawnStars() {
     starsGroup.add(star);
   }
 }
-
-
-
 
 function spawnObstacles(speed) {
   if(frameCount % 60 === 0) {
